@@ -1,0 +1,587 @@
+
+<!-- saved from url=(0048)https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<link rel="stylesheet" href="./ex3_files/nlp.css" type="text/css" media="all">
+<link href="./ex3_files/prettify.css" type="text/css" rel="stylesheet">
+<script type="text/javascript" src="./ex3_files/prettify.js"></script>
+<title>NLP21 Assignment 3: Syntactic Parsing</title>
+</head>
+
+<body onload="prettyPrint()" data-new-gr-c-s-check-loaded="14.1112.0" data-gr-ext-installed="">
+
+<h1>Assignment 3</h1>
+
+<h2>Due: Tue 28 Jan 2020 Midnight</h2>
+<a href="http://www.cs.bgu.ac.il/~elhadad/nlp21.html">Natural Language Processing - Fall 2021 Michael Elhadad</a>
+<p>
+This assignment covers the topic of syntactic parsing.
+Submit your solution in the form of a Jupyter notebook (ipynb) file.
+
+</p><h2>Content</h2>
+<ul>
+<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q1">Q1: Designing CFGs for NLP</a></li>
+    <ul>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q1.1">Q1.1: Extend a CFG to support Number agreement, Pronouns and Dative Constructions</a>
+            <ul>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q1.1.1">Q1.1.1 Determiners and Count/Mass Nouns</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q1.1.2">Q1.1.2 Pronouns</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q1.1.3">Q1.1.3 Subject/Verb Agreement</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q1.1.4">Q1.1.4 Over-generation</a></li>
+            </ul>            
+        </li>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q1.2">Q1.2: Extend a CFG to support Coordination and Prepositional Phrases</a>
+            <ul>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q1.2.1">Q1.2.1 Support Prepositional Phrases</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q1.2.2">Q1.2.2 Support Coordination</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q1.2.3">Q1.2.3 Over-generation</a></li>
+            </ul>            
+        </li>
+    </ul>
+
+<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2">Q2: Learning a PCFG from a Treebank</a>
+    <ul>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.1">Q2.1 Random PCFG Generation</a>
+            <ul>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.1.1">Q2.1.1 PCFG_Generate</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.1.2">Q2.1.2 Generate 1,000 Trees</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.1.3">Q2.1.3 Gather Rules Frequency for all Non-Terminals</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.1.4">Q2.1.4 Compute KL-Divergence between a priori and generated parameters</a></li>
+            </ul>
+        </li>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.2">Q2.2 Learn a PCFG from a Treebank</a>
+            <ul>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.2.1">Q2.2.1 Induce_PCFG</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.2.2">Q2.2.2 Data Exploration</a></li>
+            </ul>
+        </li>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.3">Q2.3 Induce a PCFG in Chomsky Normal Form</a>
+            <ul>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.3.1">Q2.3.1 PCFG_CNF_Learn</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.3.2">Q2.3.2 Data Exploration</a></li>
+            </ul>
+        </li>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q2.4">Q2.4 Test CFG Independence Assumptions</a></li>
+    </ul>
+</li>
+<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q3">Q3: Building and Evaluating a Simple PCFG Parser</a>
+	<ul>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q3.1">Q3.1 Build a Parser</a>
+            <ul>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q3.1.1">Q3.1.1 Dataset Split</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q3.1.2">Q3.1.2 Learn a PCFG over the Chomsky Normal Form</a></li>
+                <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q3.1.3">Q3.1.3 Viterbi Parser</a></li>
+            </ul>            
+        </li>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q3.2">Q3.2 Evaluate the Parser</a></li>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q3.3">Q3.3 Accuracy per Distance</a></li>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw3.html#q3.4">Q3.4 Accuracy per Label</a></li>
+    </ul>
+</li>
+</ul>
+
+<hr>
+<a name="q1"></a>
+<h2>Question 1: Designing CFGs for NLP</h2>
+
+NLTK provides library support to read CFGs from string representation, and parse sentences given a CFG using different 
+parsing algorithms (either top-down or bottom-up).  In this question, we manually develop a grammar to support 
+increasingly complex phenomena in English syntax. The following code provides the starting point:
+
+<pre>sg = """
+S -&gt; NP VP
+VP -&gt; IV | TV NP
+NP -&gt; 'John' | "bread"
+IV -&gt; 'left'
+TV -&gt; 'eats'
+"""
+g = CFG.fromstring(sg)
+
+# Bottom-up  parser
+sr_parser = nltk.ShiftReduceParser(g, trace=2)
+
+# Parse sentences and observe the behavior of the parser
+def parse_sentence(sent):
+    tokens = sent.split()
+    trees = sr_parser.parse(tokens)
+    for tree in trees:
+        print(tree)
+
+parse_sentence("John left")
+parse_sentence("John eats bread")
+</pre>
+
+In this toy grammar, the following non-terminals are used:
+<ul>
+<li>S: sentence
+</li><li>VP: verb phrase
+</li><li>NP: noun phrase
+</li><li>IV: intransitive verb (a verb which does not expect a complement)
+</li><li>TV: transitive verb (a verb which expects an obligatory complement)
+</li></ul>
+
+<a name="q1.1"></a>
+<h3>Question 1.1: Extend a CFG to support Determiners, Number agreement, Countable/Mass nouns, Pronouns and Dative Constructions</h3>
+
+Extend the CFG so that the following sentences can be parsed:
+<pre>    John left
+    John loves Mary
+    They love Mary
+    They love her
+    She loves them
+    Everybody loves John
+    A boy loves Mary
+	The boy loves Mary
+	Some boys love Mary
+    John gave Mary a heavy book
+    John gave it to Mary
+	John likes butter
+	John moves a chair
+</pre>
+
+<a name="q1.1.1"></a>
+<h4>1.1.1 Determiners and Count/Mass Nouns</h4>
+
+<b>Determiners</b> in English come before common nouns.
+Proper nouns cannot have a determiner. (We ignore cases such as "The Petersons came by tonight for a visit.")
+<p>
+Some determiners can only be used for singular nouns ("a"), others only for plural nouns ("many") and others with either plural or singular ("the").
+</p><p>
+Some common nouns are called "uncountable" or <a href="https://en.wikipedia.org/wiki/Mass_noun">mass nouns</a> (e.g., "butter").
+Mass nouns cannot appear in plural and cannot have counting determiners.
+Other nouns are <a href="https://en.wikipedia.org/wiki/Count_noun%22">countable nouns</a>. They can be used in the plural and can be modified by counting determiners.
+</p><p>
+Extend the grammar to support countable and uncountable nouns with the corresponding restrictions on determiners and plural.
+</p><p>
+
+<a name="q1.1.2"></a>
+</p><h4>1.1.2 Pronouns</h4>
+
+<b>Pronouns</b> in English are characterized by the following morphological attributes:
+<ul>
+    <li>Number: singular / plural (e.g., he/they)</li>
+    <li>Gender: masculine / feminine / neutral (e.g., he/she/it)</li>
+    <li>Case: nominative / accusative (e.g., he/him)</li>
+</ul>
+Make sure the appropriate form of pronouns are used in each of the possible contexts.
+Do you need to encode gender in the grammar? Explain why.
+<p>
+
+<a name="q1.1.3"></a>
+</p><h4>1.1.3 Subject/Verb Agreement</h4>
+<p>
+Make sure subject and verb agree in number.
+</p><p>
+
+<a name="q1.1.4"></a>
+</p><h4>1.1.4 Over-generation</h4>
+    
+Check whether your grammar overgenerates by giving an example of ungrammatical sentence that it recognizes as grammatical.
+<p>
+
+
+<a name="q1.2"></a>
+</p><h3>Question 1.2: Extend a CFG to support Coordination and Prepositional Phrases</h3>
+
+<a name="q1.2.1"></a>
+<h4>1.2.1 Support Prepositional Phrases</h4>
+
+Extend the grammar so that it can parse the following sentences:
+
+<pre>John saw a man with a telescope
+John saw a man on the hill with a telescope
+
+Mary knows men and women
+Mary knows men, children and women
+
+John and Mary eat bread
+John and Mary eat bread with cheese
+</pre>
+
+<a name="q1.2.2"></a>
+<h4>1.2.2 Support Coordination</h4>
+    
+What is the number of a coordination such as "John and Mary"?
+<p>
+What is the number of a coordination such as "John or Mary"?
+</p><p>
+"John or the children"?
+</p><p>
+Propose (without implementing) ways to support such variations.
+</p><p>
+
+<a name="q1.2.3"></a>
+</p><h4>1.2.3 Overgeneration</h4>
+
+Demonstrate ways in which your grammar over-generates.  Explain your observations.
+<p>
+
+
+</p><hr>
+<a name="q2"></a>
+<h2>Question 2: Learning a PCFG from a Treebank</h2>
+
+<a name="q2.1"></a>
+<h3>Question 2.1: Random PCFG Generation</h3>
+
+Consider the PCFG datatype implementation provided in NLTK.
+<p>
+Consider the module <a href="http://www.nltk.org/_modules/nltk/parse/generate.html">nltk.parse.generate</a>.
+It contains a function generate(grammar) which given a CFG grammar produces all the sentences the grammar can produce.
+Naturally, this may produce an infinite number of sentences if the grammar is recursive.
+
+</p><pre class="prettyprint">import itertools
+from nltk.grammar import CFG
+from nltk.parse import generate
+
+demo_grammar = """
+  S -&gt; NP VP
+  NP -&gt; Det N
+  PP -&gt; P NP
+  VP -&gt; 'slept' | 'saw' NP | 'walked' PP
+  Det -&gt; 'the' | 'a'
+  N -&gt; 'man' | 'park' | 'dog'
+  P -&gt; 'in' | 'with'
+"""
+grammar = CFG.fromstring(demo_grammar)
+
+for n, sent in enumerate(generate.generate(grammar, n=10), 1):
+        print('%3d. %s' % (n, ' '.join(sent)))
+		
+  1. the man slept
+  2. the man saw the man
+  3. the man saw the park
+  4. the man saw the dog
+  5. the man saw a man
+  6. the man saw a park
+  7. the man saw a dog
+  8. the man walked in the man
+  9. the man walked in the park
+ 10. the man walked in the dog
+</pre>
+
+<a name="q2.1.1"></a>
+<h4>2.1.1 PCFG_Generate</h4>
+
+Write a new function <code>pcfg_generate(grammar)</code> which will
+generate a random tree from a PCFG according to its generative
+probability model.  In other words, your task is to write a <code>sample</code>
+method from the PCFG distribution.
+<p>
+
+Generation works top down: pick the start symbol of
+the grammar, then randomly choose a production starting from the start
+symbol, and add the RHS as children of the root node, then expand each
+node until you obtain terminals.  The result should be a tree and not
+a sentence.
+</p><p>
+
+The generated parse trees should exhibit the distribution of non-terminal
+distributions captured in the PCFG (that is, the generation process should
+sample rules according to the weights of each non-terminal in the grammar).
+</p><p>
+
+Note: you must generate according to the PCFG distribution - not just randomly.
+To this end, you should use the method <code>generate()</code> from the
+NTLK <a href="http://www.nltk.org/_modules/nltk/probability.html">ProbDistI</a> interface.
+Specifically, you should use the
+<a href="http://www.nltk.org/api/nltk.html#nltk.probability.DictionaryProbDist">nltk.probability.DictionaryProbDist</a>
+class to represent the probability distribution of mapping an LHS non-terminal to one of the possible RHS.
+
+</p><pre class="prettyprint">from nltk.grammar import Nonterminal
+from nltk.grammar import toy_pcfg2
+from nltk.probability import DictionaryProbDist
+
+productions = toy_pcfg2.productions()
+
+# Get all productions with LHS=NP
+np_productions = toy_pcfg2.productions(Nonterminal('NP'))
+
+dict = {}
+for pr in np_productions: dict[pr.rhs()] = pr.prob()
+np_probDist = DictionaryProbDist(dict)
+
+# Each time you call, you get a random sample
+print(np_probDist.generate())
+(Det, N)
+
+print(np_probDist.generate())
+(Name,)
+
+print(np_probDist.generate())
+(Name,)
+</pre>
+
+
+<pre class="prettyprint">Function Specification
+
+pcfg_generate(grammar) -- return a tree sampled from the language described by the PCFG grammar
+</pre>
+
+<a name="q2.1.2"></a>
+<h4>2.1.2 Generate 1,000 Trees</h4>
+
+Generate 1,000 random trees using nltk.grammar.toy_pcfg2 - store the resulting trees in a file "toy_pcfg2.gen".
+
+<a name="q2.1.3"></a>
+<h4>2.1.3 Gather Rules Frequency for all Non-Terminals</h4>
+    
+Compute the rules frequency distribution of each non-terminal and pre-terminal in the generated corpus.
+You can look at the code of <a href="http://www.nltk.org/_modules/nltk/grammar.html#induce_pcfg">nltk.induce_pcfg(root, productions)</a> to see how this can be done.
+You should construct one distribution per non-terminal.
+
+<a name="q2.1.4"></a>
+<h4>2.1.4 Compute KL-Divergence between a priori and generated parameters</h4>
+    
+For each distribution, compute the KL-divergence between the MLE estimation of the probability
+distribution constructed on your test corpus and toy_pcfg2.
+The MLE estimation is obtained by applying the <a href="http://www.nltk.org/_modules/nltk/probability.html#MLEProbDist">MLEProbDist</a> estimator to the observed empirical frequency distribution.
+KL-divergence (<a href="http://en.wikipedia.org/wiki/Kullback-Leibler_divergence">Kullback-Leibler divergence</a>
+also known as relative entropy) estimates the difference between two distributions.
+<p>
+Read some precisions on handling <a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/KL.html">diverging KL computations</a> when the support of the 2 distributions p and q are not identical.
+</p><p>
+
+Explain your observations.
+
+
+
+
+<a name="q2.2"></a>
+</p><h3>Question 2.2: Learn a PCFG from a Treebank</h3>
+
+In this question, we will learn a PCFG from a treebank with different
+types of tree annotations.  We start from a subset of 200 trees from
+the Penn Treebank (which is distributed by <a href="http://www.nltk.org/">NLTK</a>
+in the corpus named "treebank" - the NLTK version contains about 4,000 trees).
+<p>
+
+In this question, we want to induce a PCFG from the treebank and
+investigate its properties.  For reference, NLTK provides a function
+called <a href="http://www.nltk.org/_modules/nltk/grammar.html#induce_pcfg">induce_pcfg</a>
+in the nltk.grammar module.  It starts from a set of productions and constructs a weighted grammar with the MLE
+estimation of the production distributions.
+
+
+<a name="q2.2.1"></a>
+</p><h4>2.2.1 Induce_PCFG</h4>
+
+At this stage, we learn the PCFG "as is" -- without Chomsky Form Normalization -- but with "simplified" tags. That is, we must use a function to simplify all tags in the tree (non-terminal and terminal): 
+<pre class="prettyprint">from nltk.corpus import LazyCorpusLoader, BracketParseCorpusReader
+
+def simplify_functional_tag(tag):
+    if '-' in tag:
+        tag = tag.split('-')[0]
+    return tag
+
+treebank = LazyCorpusLoader('treebank/combined', BracketParseCorpusReader, r'wsj_.*\.mrg')
+
+# Raw form
+print(treebank.parsed_sents()[:1])
+
+# Pretty print
+print(treebank.parsed_sents()[0])
+
+# we need to transform the tree to remove NONE tags and simplify tags.
+</pre>
+We want all tags of the form "NP-SBJ-2" to be simplified into "NP".  We also want to filter out "NONE" elements from the treebank.  
+You must find the best way to perform NONE filtering on the trees. (NONE elements appear in the original Penn Treebank for example in the case of relative clauses.)
+
+<pre class="prettyprint">pcfg_learn(treebank, n)
+-- treebank is the nltk.corpus.treebank lazy corpus reader
+-- n indicates the number of trees to read
+-- return an nltk.PCFG instance
+</pre>
+
+Use the following code as a starting point:
+<pre class="prettyprint">from nltk.grammar import Production
+from nltk import Tree, Nonterminal
+
+def get_tag(tree):
+    if isinstance(tree, Tree):
+        return Nonterminal(simplify_functional_tag(tree.label()))
+    else:
+        return tree
+
+def tree_to_production(tree):
+    return Production(get_tag(tree), [get_tag(child) for child in tree])
+
+def tree_to_productions(tree):
+    yield tree_to_production(tree)
+    for child in tree:
+        if isinstance(child, Tree):
+            for prod in tree_to_productions(child):
+                yield prod
+</pre>
+
+<a name="q2.2.2"></a>
+<h4>2.2.2 Data Exploration and Validation</h4>
+
+Explore the following properties of the learned PCFG:
+<ul>
+<li>How many productions are learned from the trees? How many interior nodes were in the treebank?
+</li><li>Draw a plot of the distribution of productions according to their frequency (number of rules with frequency 1, 2, ...).  What do you observe?
+</li><li>Induce a PCFG from 200 trees, and another one from 400 trees - compare the distribution of the rules you learn.
+</li></ul>
+
+<a name="q2.3"></a>
+<h3>Question 2.3: Induce a PCFG in Chomsky Normal Form</h3>
+
+<a name="q2.3.1"></a>
+<h4>2.3.1 PCFG_CNF_Learn</h4>
+
+Implement <code>pcfg_cnf_learn</code>
+
+We now want to learn a PCFG in Chomsky Normal Form from the treebank, with simplified tags, and with filtered NONE elements.
+The strategy is to convert the trees in the treebank into CNF, then to induce the PCFG from the transformed trees.
+Use the function <code>chomsky_normal_form</code> in <a href="http://www.nltk.org/_modules/nltk/treetransforms.html">nltk.treetransforms</a> to convert the trees.  
+Pay attention to NONE filtering.  Use horizontal Markov annotation and parent annotation:
+
+<code>
+chomsky_normal_form(tree, factor='right', horzMarkov=1, vertMarkov=1, childChar='|', parentChar='^')
+</code>
+
+<pre class="prettyprint">pcfg_cnf_learn(treebank, n)
+-- treebank is the nltk.corpus.treebank lazy corpus reader (simplified tags)
+-- n indicates the number of trees to read
+-- return an nltk.PCFG in CNF
+</pre>
+
+
+<a name="q2.3.2"></a>
+<h4>2.3.2 Data Exploration</h4>
+
+How many productions are learned from the CNF trees? How many interior nodes were in the original treebank, and in the CNF treebank?
+
+Compare the CNF and non-CNF figures (ratios).  What do you conclude?
+
+
+
+<a name="q2.4"></a>
+<h3>Question 2.4: Test CFG Independence Assumptions</h3>
+
+We want to test the CFG hypothesis that a node expansion is independent from its location within a tree.
+<p>
+
+For the treebank before CNF transformation, report the following statistics, for the expansions of the NP category:
+</p><ul>
+<li>Compute the distribution of the RHS given the NP LHS for all NPs in the treebank.  Draw a histogram plot.
+</li><li>Compute the same distribution only for NPs that appear directly below a S node (any variant of S in the Penn treebank tagset). Draw a histogram plot.
+</li><li>Compute the same distribution only for NPs that appear directly below a VP node (any variant of VP in the Penn Treebank tagset). Draw a histogram plot. 
+</li><li>Compare the distributions above.  Use KL-divergence.
+</li><li>Conclude: does the data in the treebank confirm the CFG hypothesis for each configuration (original trees, annotated CNF trees)? 
+    (How do you calibrate the values of the KL-divergence to decide that 2 values are similar?)
+</li></ul>
+<p>
+
+
+
+</p><hr>
+<a name="q3"></a>
+<h2>Question 3: Building and Evaluating a Simple PCFG Parser</h2>
+
+In this question, we will construct a Viterbi parser for the PCFG induced in Question 2 and perform evaluation of this statistical parser. 
+<p>
+
+<a name="q3.1"></a>
+</p><h3>Question 3.1: Build a Parser</h3>
+
+<a name="q3.1.1"></a>
+<h4>3.1.1 Dataset Split</h4>
+    
+Split the NLTK treebank corpus into 80% training (about 3,200 trees) and 20% (about 800 trees) testing sets.
+<p>
+
+
+<a name="q3.1.2"></a>
+</p><h4>3.1.2 Learn a PCFG over the Chomsky Normal Form version of this treebank</h4>
+<p>
+
+
+<a name="q3.1.3"></a>
+</p><h4>3.1.3 Viterbi Parser</h4>
+    
+Construct a <code><a href="https://www.nltk.org/_modules/nltk/parse/viterbi.html">ViterbiParser</a></code> using this PCFG grammar.
+Test the parser on a few sentences.
+
+<a name="q3.2"></a>
+<h3>Question 3.2: Evaluate the Parser</h3>
+
+Your task is to compute the ParsEval metric for the constituent-based parse trees on the test dataset of our treebank.  
+Report the following metrics:
+<ol>
+<li>Precision
+</li><li>Recall
+</li><li>F-measure
+</li><li>Labelled Precision
+</li><li>Labelled Recall
+</li><li>Labelled F-Measure
+</li></ol>
+
+Where precision and recall are computed over "constituents" between the parsed trees and the treebank trees: a constituent is a triplet 
+(interior_node, first_index, last_index) - where first_index is the index of the first word in the sentence covered by the interior node,
+and last_index that of the last word (that is, [first_index, last_index] is the yield of the interior node).
+<p>
+
+In labelled precision and recall we count that 2 constituents match if they have the same label for the interior node.  
+For unlabelled metrics, we just compare the first and last indexes.  
+Make sure you compare the trees from the treebank after they have been simplified: for example, S-TPC-1 must be compared with S and ADVP-TMP with ADVP, and -NONE- nodes have been eliminated.
+</p><p>
+
+You can read more on this metric in the following references:
+</p><ol>
+<li><a href="http://courses.washington.edu/ling571/ling571_fall_2010/slides/evalb_improved_pcky.pdf">An assignment on parsing evaluation by Scott Farrar</a> includes detailed explanation and examples on how the metric is computed.
+</li><li><a href="http://nlp.cs.nyu.edu/evalb/">Evalb</a> software: this is the C program used in all standard evaluations of constituent parsers (by Satoshi Sekine and Michael  Collins).
+</li><li><a href="http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/parser/metrics/Evalb.html">Evalb in Java</a> for those who prefer reading Java over C - is part of the Stanford CoreNLP package.
+</li></ol>
+
+The specific steps to follow are:
+<ul>
+<li>Generate a list of labelled constituents of the form <code>[label first_index last_index]</code> given a parse tree.</li>
+<li>Compute unlabelled Precision, Recall and F-measure for your parser on the test dataset</li>
+<li>Compute labelled Precision, Recall and F-measure for your parser on the test dataset</li>
+</ul>
+
+
+<a name="q3.3"></a>
+<h3>Question 3.3: Accuracy per Distance</h3>
+
+In general, parsers do a much better job on short constituents than long ones.  
+Draw a plot of the accuracy of constituents per constituent length.  
+The length of a constituent (node, first, last) is last-first+1.  
+For a given constituent length X, accuracy is the number of constituents of length X in the parsed tree that are accurate divided by the total number of constituents of length X.
+
+<a name="q3.4"></a>
+<h3>Question 3.4: Accuracy per Label</h3>
+
+Report accuracy of constituents per label type (S, SBAR, NP, VP, PP etc).
+For each node type, report number of occurrences and accuracy. 
+Note: report accuracy per node type WITHOUT Chomsky Normal Form modification.
+For example, if the CNF of the tree generated a non-terminal NP^S, we should count this as NP for this question.
+
+
+<br>
+<hr>
+<i>Last modified 03 Jan 2021</i>
+
+</body><grammarly-desktop-integration data-grammarly-shadow-root="true"><template shadowrootmode="open"><style>
+  div.grammarly-desktop-integration {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select:none;
+    user-select:none;
+  }
+
+  div.grammarly-desktop-integration:before {
+    content: attr(data-content);
+  }
+</style><div aria-label="grammarly-integration" role="group" tabindex="-1" class="grammarly-desktop-integration" data-content="{&quot;mode&quot;:&quot;full&quot;,&quot;isActive&quot;:true,&quot;isUserDisabled&quot;:false}"></div></template></grammarly-desktop-integration></html>
