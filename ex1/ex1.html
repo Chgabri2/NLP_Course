@@ -1,0 +1,900 @@
+
+<!-- saved from url=(0048)https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+<link rel="stylesheet" href="./ex1_files/nlp.css" type="text/css" media="all">
+<title>NLP21 Assignment 1: Language Models, Word Embeddings, Linear Models, Regularization</title>
+</head>
+
+<body data-new-gr-c-s-check-loaded="14.1112.0" data-gr-ext-installed="">
+<h1>NLP - Assignment 1</h1>
+
+<h2>Due: Mon 30 Nov 2020 Midnight</h2>
+<a href="http://www.cs.bgu.ac.il/~elhadad/nlp21.html">Natural Language Processing - Fall 2021 Michael Elhadad</a>
+<p>
+This assignment covers 3 parts:
+</p><ol>
+<li>Language models</li>
+<li>Linear regression in a probabilistic model and regularization</li>
+<li>Text classification using a PyTorch character RNN</li>
+</ol>
+
+The objectives of the assignment are for Part 1:
+<ol>
+<li>Use Python</li>
+<li>Use n-gram models to generate a language model</li>
+<li>Compare different language models using perplexity</li>
+<li>Compare different smoothing methods for n-gram distribution estimation</li>
+<li>Compare word-based and character-based language models</li>
+<li>Compare the expressive power of n-gram models and neural-network language models.</li>
+</ol>
+
+For Part 2, on distributions, regression and classification, the objectives are:
+<ol>
+<li>Manipulate basic statistical distributions (Normal, Multinomial), expectations, sampling and estimation.</li>
+<li>Perform regression using a synthetic dataset.</li>
+<li>Develop an intuition of how regularization helps overcome overfitting in a simple case.</li>
+</ol>
+
+For Part 3, the objective is to experiment with neural networks, encode text into vectors and run training and evaluation on a small dataset.
+
+<p>
+Make sure you have installed scipy, scikit-learn and numpy to work on this assignment.  
+
+For PyTorch, we use the latest version of PyTorch, which can be installed easily with pip.
+The dataset we use is small and runs on CPU (no need for GPU) in a few minutes of training.
+
+One way to set up your environment is the following, using Miniconda:
+</p><ol>
+<li>Install <a href="https://docs.conda.io/en/latest/miniconda.html">miniconda</a> </li>
+<li>Launch a miniconda shell</li>
+<li>
+	In the miniconda shell, execute:
+	<pre>		
+		% conda create -n nlp21 python=3.8 pytorch transformers nlp scikit-learn scipy nltk matplotlib jupyterlab
+		% conda activate nlp21
+		% pip install datasets
+	</pre>
+</li>
+</ol>
+<p></p>
+
+<p>
+Submit your solution in the form of a <a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/notebooks.html" target="_blank">Jupyter notebook file</a> (with extension ipynb). 
+The notebook should be readable - use the capability of notebooks to use markup language for well formatted text with headings / bold / italics as needed.
+<b>The notebook should tell a story</b> - what is it you are testing, what do you expect to see, what do you observe after running an experiment.
+</p>
+
+<p>
+Look at the following two notebooks as examples to get you started - copy them to your Anaconda folder, then start
+your Jupyter notebook server and explore them:
+</p><ul>
+<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/PlottingNotebook.html" target="_blank">iPython Notebook showing a plot</a> 
+(<a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/PlottingNotebook.ipynb">ipynb</a>)
+</li><li>
+<a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/NLP21HW1Example.html" target="_blank">iPython Notebook skeleton</a>
+(<a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/NLP21HW1Example.ipynb">ipynb</a>)
+</li>
+</ul>
+<p></p>
+
+<p>
+</p><hr>
+<h2>Content</h2>
+<ul>
+<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#P1">Part 1: Language Models</a>
+	<ul>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#data">1.1 Data Exploration</a>
+	   <ul>
+	   <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#explore">1.1.1 Gathering basic statistics</a></li>
+	   <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#power">1.1.2 Zipf and Power Law</a></li>
+	   </ul>
+	</li>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#ngram">1.2 n-gram model</a>
+		<ul>
+		<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#n_parameters">1.2.1 How much memory do you expect a model to occupy?</a></li>
+		<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#train_lm">1.2.2 N-gram Word LM</a></li>
+		</ul>
+	</li>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#eval">1.3 Language Model Evaluation</a>
+	   <ul>
+	   <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#per">1.3.1 Perplexity</a></li>
+	   <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#smoothing">1.3.2 Smoothing</a></li>
+	   <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#overfit">1.3.3 Perplexity according to the order of the n-gram model</a></li>
+	   <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#test-lm">1.3.4 Test the best n-gram LM</a></li>
+	   <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#gen">1.3.5 Generating Text using Language Models</a></li>
+	   </ul>
+	</li>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#nn-lm">1.4 Character language model</a>
+		<ul>
+			<li>
+				<a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#effectiveness">1.4.1 Read and Summarize</a>
+			</li>
+			<li>
+				<a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#recipes">1.4.2 Recipes with a Character LM</a>
+			</li>			
+		</ul>
+	</li>
+	</ul>
+</li>
+<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#P2">Part 2: Polynomial curve fitting</a>
+	<ul>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#syntheticdata">2.1 Synthetic data generation</a></li>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#curvefitting">2.2 Polynomial Curve Fitting</a></li>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#regularization">2.3 Polynomial Curve Fitting with Regularization</a></li>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#prob-regr">2.4 Probabilistic Regression Model</a></li>
+	</ul>
+</li>
+<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#P3">Part 3: Text Classification with Character RNN</a>
+	<ul>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#readtut">3.1 Summarize the PyTorch Tutorial</a></li>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#newdata">3.2 Explore the Cities Dataset</a></li>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#citiesmodel">3.3 Train and Evaluate the RNN Model for Cities</a></li>
+	<li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw1.html#bettercitiesmodel">3.4 (Optional) Improve the Model</a></li>
+	</ul>
+</li>
+</ul>
+<p>
+
+</p><hr>
+<a name="P1"></a>
+<h2>Part 1: Language Models</h2>
+
+In this question, we will develop a language model over two distinct datasets.
+One language models will predict words given a history of previous words in the text.
+The other one will predict characters given a history of previous characters.
+We will use n-gram models, implemented using two distinct methods, and evaluate
+the performance of the models using perplexity.
+
+
+<a name="data"></a>
+<p></p><h3>1.1 Data Exploration</h3>
+
+<a name="explore"></a>
+<h4>1.1.1 Gathering Basic Statistics</h4>
+
+Before we apply any form of machine learning methods on an input dataset, we must explore the dataset
+and gather descriptive statistics about it.
+
+We want to collect and plot the following information on a text dataset:
+<ul>
+<li>The total number of tokens</li>
+<li>The total number of characters</li>
+<li>The total number of distinct words (vocabulary)</li>
+<li>The total number of tokens corresponding to the top-N most frequent words in the vocabulary</li>
+<li>The token/type ratio in the dataset</li>
+<li>The number of types that appear in the dev data but not the training data (hint: use <a href="https://docs.python.org/3/library/stdtypes.html#set">sets</a> 
+	which are a primitive dataset in Python for this)
+</li>
+<li>The average number and standard deviation of characters per token</li>
+<li>The total number of distinct n-grams (of words) that appear in the dataset for n=2,3,4.</li>
+<li>The total number of distint n-grams of characters that appear for n=2,3,4,5,6,7.</li>
+</ul>
+
+A dataset used in many articles studying language models is the Penn Tree Bank (PTB) dataset, which contains 929k training words, 73k validation words, and 82k test words. 
+It is formatted in such a way that only the top 10k most frequent words are in its vocabulary.
+<a href="http://www.fit.vutbr.cz/~imikolov/rnnlm/">Tomas Mikolov’s webpage</a> distributes a version of 
+<a href="http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz">this dataset</a> which has been pre-processed such that only the top-10K most frequent words occur, 
+the others are replaced by the token &lt;unk&gt;, 
+words are separated with spaces according to consistent tokenization rules,
+numbers are replaced by a single token N,
+and sentences are segmented one per line. (The file takes 33MB.)
+<p></p><p>
+
+For example:
+</p><pre>consumers may want to move their telephones a little closer to the tv set 
+&lt;unk&gt; &lt;unk&gt; watching abc 's monday night football can now vote during &lt;unk&gt; for the greatest play in N years 
+from among four or five &lt;unk&gt; &lt;unk&gt; 
+</pre>
+
+The dataset is also available in a form that is easy to process when building character-level language models (where the 
+objective is to predict the next char, not the next word, given a history of the previous characters):
+<pre>c o n s u m e r s _ m a y _ w a n t _ t o _ m o v e _ t h e i r _ t e l e p h o n e s _ a _ l i t t l e _ c l o s e r _ 
+t o _ t h e _ t v _ s e t 
+&lt; u n k &gt; _ &lt; u n k &gt; _ w a t c h i n g _ a b c _ ' s _ m o n d a y _ n i g h t _ f o o t b a l l _ c a n _ n o w _ 
+v o t e _ d u r i n g _ &lt; u n k &gt; _ f o r _ t h e _ g r e a t e s t _ p l a y _ i n _ N _ y e a r s _ f r o m _ 
+a m o n g _ f o u r _ o r _ f i v e _ &lt; u n k &gt; _ &lt; u n k &gt; 
+</pre>
+
+These types of low-level text encoding of text are critical to any process of NLP.
+<p>
+
+For testing, we will use <a href="https://cs.stanford.edu/people/karpathy/char-rnn/shakespeare_input.txt">Shakespeare works</a> (this file is often used as an example for LM).
+
+Write code to compute and discuss these statistics.  For each one, discuss what are your expectations before you compute them,
+and whether the computed value is surprising or confirms your expectation.  Note that by "token" we mean each occurrence of a word
+in the data, by "type" we mean the distinct words (the vocabulary) that appear in the specific dataset.  
+</p><p>
+
+<a name="power"></a>
+</p><h4>1.1.2 Zipf and Power Law</h4>
+
+Word count distributions are said to follow <a href="https://en.wikipedia.org/wiki/Power_law">power law distributions</a>. 
+In practice, this means that a plot of the log-frequency against the log-rank is nearly linear. 
+Verify that this holds for the Penn Treebank dataset by constructing the appropriate corpus_counts counter:
+
+<pre>import matplotlib.pyplot as plt
+import matplotlib
+print(matplotlib.__version__)
+%matplotlib inline
+
+plt.loglog([val for word,val in corpus_counts.most_common(4000)])
+plt.xlabel('rank')
+plt.ylabel('frequency');
+</pre>
+
+<pre>Refer in your code to the data containing the PTB in a folder "../data" and do not submit the data folder with your submission.
+The folder should contain the following files - as extracted from the data folder of the Mikolov dataset simple-examples.tgz:
+02/23/2011  04:08 PM           884,846 ptb.char.test.txt
+02/23/2011  04:08 PM        10,034,964 ptb.char.train.txt
+02/23/2011  04:08 PM           786,084 ptb.char.valid.txt
+08/07/2010  01:32 AM           449,945 ptb.test.txt
+08/07/2010  01:32 AM         5,101,618 ptb.train.txt
+08/07/2010  01:31 AM           399,782 ptb.valid.txt
+</pre>
+
+
+<a name="ngram"></a><p></p>
+<h3><a name="ngram">1.2 n-gram Word Language Model</a></h3>
+
+<a name="n_parameters"></a>
+<h4>1.2.1 How much memory do you expect a model to occupy?</h4>
+
+Refer to the statistics results above and provide worst-case estimates as well as expected.
+Count the parameters expected for an n-gram model of order n.
+
+<a name="train_lm"></a>
+<h4>1.2.2 N-gram LM</h4>
+
+Write Python functions to construct a word n-gram model given a dataset.
+The requested function is:
+
+<ol>
+<li>train_word_lm(dataset, n=2)</li>
+</ol>
+
+The following provide a (significant) starting point using nltk libraries:
+<p>
+</p><pre>def create_lm(fname, order=4):
+    with open(fname) as f:
+        data = f.read()
+    pad = '*' * order
+    data = pad + data
+    cfd = nltk.ConditionalFreqDist((data[i : i + order], data[i + order]) for i in range(len(data) - order))
+    cpd = nltk.ConditionalProbDist(cfd, nltk.MLEProbDist)
+    return cpd
+
+order = 4
+lm = create_lm('data/shakespeare.txt', order)
+out = []
+hist = '*' * order
+for _ in range(1000):
+    letter = lm[hist].generate()
+    hist = hist[1:] + letter
+    out.append(letter)
+print(''.join(out))
+</pre>
+
+Study the code of the nltk libraries used in this code snippet (ConditionalFreqDist and ConditionalProbDist) and provide:
+<ol>
+	<li>The list of methods of the object cpd that are useful for a language model (inherited or implemented by the various classes in nltk)</li>
+	<li>Explain how the function generate() used in the sample works - why does it compute a correct way to sample from a distribution?</li>
+</ol>
+
+
+
+<a name="eval"></a>
+<p></p><h3>1.3 Language Model Evaluation</h3>
+
+We now evaluate the performance of the learned language models by using two techniques:
+measuring perplexity on a validation dataset and using the model to generate random text, then assessing
+the readability of the generated text.
+
+<a name="per"></a>
+<h4>1.3.1 Perplexity</h4>
+
+Implement a Python function to measure the perplexity of a trained model on a test dataset.
+Adapt the methods to compute the cross-entropy and perplexity of a model from <a href="http://www.nltk.org/api/nltk.model.html">nltk.model.ngram</a> 
+to your implementation and measure the reported perplexity values on the Penn Treebank validation dataset ptb.valid.txt.
+<p>
+
+<a name="smoothing"></a>
+</p><h4>1.3.2 Smoothing</h4>
+
+One way to improve the model is to use a smoothing technique to increase the generalization of the trained model.
+Learn how the <a href="http://www.nltk.org/_modules/nltk/probability.html">nltk probability distribution</a> module provides different estimators that implement 
+different smoothing methods (Laplace, Lidstone, Witten-Bell, Good-Turing).  
+Change your model to use a different estimator than the Maximum Likelihood Estimator (MLE) count-based estimator to compute the probability of p(w|history).  
+
+<ol>
+<li>
+	In the code above, see the usage of the nltk.MLEProbDist class.  Introduce a parameter in create_lm so that you can experiment with different estimators.
+</li>
+<li>
+	Compare the obtained perplexity of the trained model on the validation dataset for different Lidstone estimators for a variety of hyper-parameter gamma (0 &lt; gamma &lt; 1) by 
+	drawing a graph of the obtained perplexity on the validation dataset for different values of gamma.
+</li>
+</ol>
+
+<p></p><p>
+
+<a name="overfit"></a>
+</p><h4>1.3.3 Perplexity according to the order of the n-gram model</h4>
+
+Another way to improve the model is to use an n-gram model with increasing values of n (2,3,...10).
+
+<ol>
+	<li>
+		Draw a graph of the obtained perplexity on the validation dataset for different values of n between 2 and 20
+		for the best value of gamma obtained above.
+	</li>
+</ol>
+<p></p><p>
+
+<a name="test-lm"></a>
+</p><h4>1.3.4 Test the best n-gram LM</h4>
+
+<ol>
+	<li>
+		Based on the 2 graphs above, prepare the best predicted n-gram model based on a Lidstone model with an optimized gamma
+		parameter and of the best possible n order.  Test this model on the test dataset of the Penn Treebank and report results.
+	</li>
+	<li>
+		Test your n-gram model with the <a href="https://www.nltk.org/api/nltk.html#nltk.probability.SimpleGoodTuringProbDist">Good-Turing estimator</a> 
+		instead of the Lidstone estimator.
+	</li>
+	<li>
+		Compare your result with the expected results on a uniform distribution of words (worst case) and on recent research results reported in 
+		research paper on language models that you can find in Google Scholar tested on the Penn Treebank dataset.
+	</li>
+</ol>
+<p></p><p>
+
+
+<a name="gen"></a>
+</p><h4>1.3.5 Generating Text from a Language Model</h4>
+
+Another way to evaluate a language model is to use the model in a generative manner - that is, to randomly sample
+sentences starting from a seed prefix, and generating each next word by sampling from the model distribution p(w | prefix).
+
+<ol>
+	<li>
+		Implement the method generate(model, seed) and test it on the best model you have trained.
+	</li>
+	<li>
+		Discuss ways to decide when the generation should stop.
+	</li>
+	<li>
+		When you sample from the LM given a history, you should not pick the most likely word generated by the LM, otherwise 
+		the generator would be deterministic.  In the code above, observe we use the method 
+		<a href="https://www.nltk.org/api/nltk.html#nltk.probability.ProbDistI.generate">nltk.ProbDistI.generate()</a>.  
+		Explain what is expected from this method of text generation.
+	</li>
+	<li>
+		Report at least 5 randomly generated segments on different seeds and comment on what you observe.
+	</li>
+</ol>
+
+
+<h4>Optional material</h4>
+
+The way to control the variety of the text generated by the LM is to introduce a parameter usually called the <i>temperature</i>
+of the generator which allows us to sample words randomly according to the distribution produced by the LM (that is, we do not 
+always select the most likely candidate - we sample from the distribution produced by the LM).  
+<p>
+Read <a href="https://nlp.stanford.edu/blog/maximum-likelihood-decoding-with-rnns-the-good-the-bad-and-the-ugly/">Maximum Likelihood Decoding with RNNs - the good, 
+	the bad, and the ugly</a> by Russell Stewart (2016) and explain how a temperature argument can control the level of variability generated by the model.
+</p>
+Read the code in <a href="https://github.com/sameersingh/uci-statnlp/blob/master/hw2/generator.py">generator.py</a> from Sameer Sing which demonstrates a method to generate from a LM
+with a temperature parameter.  Explain how the code in this method corresponds to the mathematical explanation provided in the blog above.
+
+
+
+<a name="nn-lm"></a>
+<p></p><h3>1.4 Character language model</h3>
+
+It is interesting to compare word-based and character-based language models.
+On the one hand, character-based models need to predict a much smaller range of options (one character out of ~100 possible characters vs. one word out of 200K possible words - or 10K in the example we reviewed above).  
+On the other hand, we need to maintain a much longer history of characters to obtain a significant memory of the context which would make sense semantically.
+<p>
+
+<a name="effectiveness"></a>
+</p><h4>1.4.1 Read and Summarize</h4>
+
+Read the following article: 
+<a href="http://karpathy.github.io/2015/05/21/rnn-effectiveness/">The Unreasonable Effectiveness of Recurrent Neural Networks</a>, May 21, 2015, Andrej Karpathy (up to Section "Further Reading").  
+Write a summary of this essay of about 200 words highlighting what is most surprising in the experimental results reported in the blog.
+Refer to what you know about formal languages and Chomsky's hierarchy.
+<p></p>
+
+<p>
+Read the follow-up article:
+<a href="http://nbviewer.jupyter.org/gist/yoavg/d76121dfde2618422139">The unreasonable effectiveness of Character-level Language Models (and why RNNs are still cool)</a>, Sept 2015, Yoav Goldberg.  
+Write a summary of this essay of about 200 words.
+</p>
+
+<a name="recipes"></a>
+<p></p><h4>1.4.2 Recipes with a Character LM</h4>
+
+<p>
+Strikingly realistic output can be generated when training a character language-model on a strongly-constrained genre of text like cooking recipes.
+Train your n-gram model on the dataset provided in 
+<a href="https://gist.github.com/nylki/1efbaa36635956d35bcc">do androids dream of cooking?</a> which contains about 32K recipes gathered from the Internet.
+</p>
+
+<p>
+Your task is:
+</p>
+<ol>
+<li>
+	Gather the recipes dataset and prepare a dataset reader according to the structure of the files.
+</li>
+<li>
+	Report basic statistics about the dataset (number of recipes, tokens, characters, vocabulary size, distribution of the size of recipes in words and in chars, distribution of length of words).
+</li>
+<li>
+	Split the dataset into training, dev and test as a 80%/10%/10% split.  Provide a Python interface to access the split conveniently.
+</li>
+<li>
+	Choose the order of the char n-gram according to the indications given in Yoav Goldberg's article.  
+	Justify the choice (you should use the dev test for this).
+</li>
+<li>
+	Train a char language model using your LM mode adapted to work on characters instead of words.
+</li>
+<li>
+	Report on the perplexity of the trained language model.  Comment on the value you observe compared to the perplexity of the word LM model obtained above.
+</li>
+<li>
+	Sample about 5 generated recipes from the trained language model.
+</li>
+<li>
+	Write 3 to 5 observations about the generated samples.
+</li>
+</ol>
+
+
+<hr>
+<hr>
+<a name="P2"></a>
+<h2>Part 2: Polynomial Curve Fitting</h2>
+
+As a pre-requisite to this question, read this <a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/prob.html">introduction to probability</a>.
+<p>
+
+In this question, we will reproduce the polynomial curve fitting
+example used in Bishop's <a href="https://www.microsoft.com/en-us/research/people/cmbishop/#!prml-book">book</a>
+in Chapter 1.  Polynomial curve fitting is an example of a learning
+task called <i>regression</i> (as opposed to <i>classification</i> we
+discussed in class).  In regression, the objective is to learn a
+function mapping an input variable X to a continuous target variable
+Y, while in classification, Y is a discrete variable.
+It turns out that regression is simpler to grasp than classification.  
+This task shows how to develop a probabilistic model of a task often described in geometric terms.
+</p><p>
+
+The outline of the task is:
+</p><ol>
+<li>Generate a synthetic dataset of N points (x, t) for a known function y(x) with some level of noise.
+</li><li>Solve the curve fitting regression problem using error function optimization.
+</li><li>Observe the problems of over-fitting this method produces.
+</li><li>Introduce regularization to overcome over-fitting as a form of MAP estimation.
+</li><li>Finally, use Bayesian estimation to produce an interval estimation of the function y.
+</li></ol>
+
+<a name="syntheticdata"></a>
+<h3>2.1 Synthetic Dataset Generation</h3>
+
+Learn how to use the numpy.random package to sample random numbers from well-known distributions in this 
+	<a href="https://numpy.org/doc/stable/reference/random/legacy.html">reference</a> page.
+	In particular, we will use in this question the Normal distribution: numpy.random.Generator.normal
+
+<p>
+Generate a dataset of points in the form of 2 vectors x and t of size N where:
+</p>
+
+<pre>ti = y(xi) + Normal(mu, sigma)
+
+where the xi values are equi-distant on the [0,1] segment (that is, x<sub>1</sub> = 0, x<sub>2</sub>=1/N-1, x<sub>3</sub>=2/N-1..., x<sub>N</sub> = 1.0)
+mu = 0.0
+sigma = 0.03
+y(x) = sin(2πx)
+</pre>
+
+Our objective will be to "learn" the function y from the noisy sparse dataset we generate.
+<p>
+The function <b>generateDataset(N, f, sigma)</b> should return a tuple with the 2 vectors x and t.
+N is the number of samples to generate, f is a function, and sigma is the standard deviation for the noise.
+</p><p>
+Draw the plot (scatterplot) of (x,t) using matplotlib for N=100.
+Look at the documentation of the <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.Generator.normal.html#numpy.random.Generator.normal">numpy.random.Generator.normal</a> function in Numpy for an example of usage.
+Look at the definition of the function <a href="https://numpy.org/doc/stable/reference/generated/numpy.linspace.html#numpy.linspace">numpy.linspace</a> to generate your dataset.
+</p><p>
+<b>Note</b>: a useful property of Numpy arrays is that you can apply a function to a Numpy array as follows:
+</p><pre>import math
+import numpy as np
+def s(x): return x**2
+def f(x): return math.sin(2 * math.pi * x)
+vf = np.vectorize(f)        # Create a vectorized version of f
+
+z = np.array([1,2,3,4])
+
+sz = s(z)                   # You can apply simple functions to an array
+sz.shape                    # Same dimension as z (4)
+
+fz = vf(z)                  # For more complex ones, you must use the vectorized version of f
+fz.shape
+</pre>
+
+
+<a name="curvefitting"></a>
+<h3>2.2 Polynomial Curve Fitting</h3>
+
+We will attempt to learn the function y given a synthetic dataset (x, t).
+We assume that y is a polynomial of degree M - that is:
+<pre>y(x) = w<sub>0</sub> + w<sub>1</sub>x + w<sub>2</sub>x<sup>2</sup> + ... + w<sub>M</sub>x<sup>M</sup>
+</pre>
+
+Our objective is to estimate the vector w = (w<sub>0</sub>...w<sub>M</sub>) from the dataset (x, t).
+<p>
+We first attempt to solve this regression task by optimizing the square error function (this method is called <i>least squares</i>:
+</p><pre>Define: E(w) = 1/2<font size="+3">Σ</font><sub>i</sub>(y(x<sub>i</sub>) - t<sub>i</sub>)<sup>2</sup>
+             = 1/2<font size="+3">Σ</font><sub>i</sub>(<font size="+3">Σ</font><sub>k</sub>w<sub>k</sub>x<sub>i</sub><sup>k</sup> - t<sub>i</sub>)<sup>2</sup>
+</pre>
+
+If t = (t<sub>1</sub>, ..., t<sub>N</sub>), then define the <i>design matrix</i> to be the matrix Φ such that Φ<sub>nm</sub> = x<sub>n</sub><sup>m</sup> = Φ<sub>m</sub>(x<sub>n</sub>).
+We want to minimize the error function, and, therefore, look for a solution to the linear system of equations:
+<pre>dE/dw<sub>k</sub> = 0 for k = 0..M
+</pre>
+
+When we work out the partial derivations, we find that the solution to the following system gives us the optimal value w<sub>LS</sub> given (x, t):
+<pre>w<sub>LS</sub> = (Φ<sup>T</sup>Φ)<sup>-1</sup>Φ<sup>T</sup>t
+
+(Note: Φ is a matrix of dimension Nx(M+1), w is a vector of dimension (M+1) and t is a vector of dimension N.)
+</pre>
+
+Here is how you write this type of matrix operations in Python using the Numpy library:
+<pre>import numpy as np
+import scipy.linalg
+
+t = np.array([1,2,3,4])                    # This is a vector of dim 4
+t.shape                                    # (4,)
+phi = np.array([[1,1],[2,4],[3,3],[2,4]])  # This is a 4x2 matrix
+phi.shape                                  # (4, 2) 
+prod = np.dot(phi.T, phi)                  # prod is a 2x2 matrix
+prod.shape                                 # (2, 2)
+i = np.linalg.inv(prod)                    # i is a 2x2 matrix
+i.shape                                    # (2, 2)
+m = np.dot(i, phi.T)                       # m is a 2x4 matrix
+m.shape                                    # (2, 4)
+w = np.dot(m, t)                           # w is a vector of dim 2
+w.shape                                    # (2,)
+</pre>
+
+Implement a method <b>optimizeLS(x, t, M)</b> which given the dataset (x, t) returns the optimal polynomial of degree M that approximates the dataset according
+to the least squares objective. Plot the learned polynomial w*<sub>M</sub>(x<sub>i</sub>) and the real function sin(2πx) for a dataset of size N=10 and M=1,3,5,10.
+
+<a name="regularization"></a>
+<h3>2.3 Polynomial Curve Fitting with Regularization</h3>
+
+We observe that the solution to the least-squares optimization has a tendency to over-fit the dataset.
+To avoid over-fitting, we will use a method called <i>regularization</i>: the objective function we want to
+optimize will take into account the least-squares error as above, and in addition the complexity of the learned model w.
+<p>
+We define a new objective function:
+</p><pre>Define E<sub>PLS</sub>(w) = E(w) + λE<sub>W</sub>(w)
+
+Where E<sub>PLS</sub> is called the <i>penalized least-squares</i> function of w
+and   E<sub>W</sub> is the penalty function.
+
+We will use a standard penalty function:
+      E<sub>W</sub>(w) = 1/2 w<sup>T</sup>.w = 1/2 <font size="+3">Σ</font><sub>m=0..M</sub>w<sub>m</sub><sup>2</sup>
+</pre>
+
+When we work out the partial derivatives of the minimization problem, we find in closed form, that the solution to the
+penalized least-squares is:
+<pre><b>w<sub>PLS</sub></b> = (Φ<sup>T</sup>Φ + λ<b>I</b>)<sup>-1</sup>Φ<sup>T</sup>t
+</pre>
+
+λ is called a hyper-parameter (that is, a parameter which influences the value of the model's parameters w).
+Its role is to balance the influence of how well the function fits the dataset (as in the least-squares model) and how smooth it is.
+<p>
+Write a function <b>optimizePLS(x, t, M, lambda)</b> which returns the optimal parameters w<sub>PLS</sub> given M and lambda.
+</p><p>
+
+We want to optimize the value of λ. The way to optimize is to use a development set in addition to our training set.
+</p><p>
+To construct a development set, we will extend our synthetic dataset construction function to return 3 samples:
+one for training, one for development and one for testing. Write a function <b>generateDataset3(N, f, sigma)</b> which
+returns 3 pairs of vectors of size N each, (x<sub>test</sub>, t<sub>test</sub>), (x<sub>validate</sub>, t<sub>validate</sub>)
+and (x<sub>train</sub>, t<sub>train</sub>).  The target values are generated as above with Gaussian noise N(0, sigma).
+</p><p>
+Look at the documentation of the function numpy.random.shuffle() as a way to generate 3 subsets of size N from the list of
+points generated by linspace.
+</p><p>
+Given the synthetic dataset, optimize for the value of λ by varying the value of log(λ) from -40 to -20 on the
+development set.  Draw the plot of the normalized error of the model for the training, development and test for the case of
+N = 10 and the case of N=100.  The normalized error of the model is defined as:
+</p><pre>NE<sub><b>w</b></sub>(<b>x</b>, <b>t</b>) = 1/N [<font size="+3">Σ</font><sub>i=1..N</sub>[t<sub>i</sub> - <font size="+3">Σ</font><sub>m=0..M</sub>w<sub>m</sub>x<sub>i</sub><sup>m</sup>]<sup>2</sup>]<sup>1/2</sup>
+</pre>
+Write the function <b>optimizePLS2(xt, tt, xv, tv, M)</b> which selects the best value λ given a dataset for training (xt, tt) and a development test (xv, tv).
+Describe your conclusion from this plot.
+
+<a name="prob-regr"></a>
+<h3>2.4 Probabilistic Regression Framework</h3>
+
+We now consider the same problem of regression (learning a function from a dataset) formulated in a probabilistic framework.
+Consider:
+<pre>t<sub>n</sub> = y(x<sub>n</sub>; <b>w</b>) + ε<sub>n</sub>
+</pre>
+
+We now model the distribution of ε<sub>n</sub> as a probabilistic model:
+<pre>ε<sub>n</sub> ~ N(0, σ<sup>2</sup>)
+
+since t<sub>n</sub> = y(x<sub>n</sub>; <b>w</b>) + ε<sub>n</sub>:
+
+p(t<sub>n</sub> | x<sub>n</sub>, <b>w</b>, σ<sup>2</sup>) = N(y(x<sub>n</sub>; <b>w</b>), σ<sup>2</sup>)
+</pre>
+
+We now assume that the observed data points in the dataset are all drawn in an independent manner (iid), we can then express the likelihood of the whole dataset:
+
+<pre>p(<b>t</b> | <b>x</b>,<b>w</b>,σ<sup>2</sup>) = <font size="+3">∏</font><sub>n=1..N</sub>p(t<sub>n</sub> | x<sub>n</sub>, <b>w</b>, σ<sup>2</sup>)
+              = <font size="+3">∏</font><sub>n=1..N</sub>(2πσ<sup>2</sup>)<sup>-1/2</sup>exp[-{t<sub>n</sub> - y(x<sub>n</sub>, <b>w</b>)}<sup>2</sup> / 2σ<sup>2</sup>]
+</pre>
+
+We consider this likelihood as a function of the parameters (<b>w</b> and σ) given a dataset (<b>t</b>, <b>x</b>).
+<p>
+If we consider the log-likelihood (which is easier to optimize because we have to derive a sum instead of a product), we get:
+</p><pre>-log p(<b>t</b> | <b>w</b>, σ<sup>2</sup>) = N/2 log(2πσ<sup>2</sup>) + 1/2σ<sup>2</sup><font size="+3">Σ</font><sub>n=1..N</sub>{t<sub>n</sub> - y(x<sub>n</sub>;<b>w</b>)}<sup>2</sup>
+</pre>
+
+We see that optimizing the log-likelihood of the dataset is equivalent
+to minimizing the error function of the least-squares method.  That is
+to say, the least-squares method is understood as the maximum
+likelihood estimator (MLE) of the probabilistic model we just developed, which produces the values <b>w<sub>ML</sub></b> = <b>w<sub>LS</sub></b>.
+<p>
+We can also optimize this model with respect to the second parameter σ<sup>2</sup> which, when we work out the derivation and the solution of the equation, yields:
+</p><pre>σ<sup>2</sup><sub>ML</sub> = 1/N <font size="+3">Σ</font><sub>n=1..N</sub>{y(x<sub>n</sub>, <b>w<sub>ML</sub></b>) - t<sub>n</sub>}<sup>2</sup>
+</pre>
+
+Given <b>w<sub>ML</sub></b> and σ<sup>2</sup><sub>ML</sub>, we can now compute the <i>plugin posterior predictive distribution</i>, which gives us the probability distribution
+of the values of t given an input variable x:
+<pre>p(t | x, <b>w<sub>ML</sub></b>, σ<sup>2</sup><sub>ML</sub>) = N(t | y(x,<b>w<sub>ML</sub></b>), σ<sup>2</sup><sub>ML</sub>)
+</pre>
+
+This is a richer model than the least-squares model studied above,
+because it not only estimates the most-likely value t given x, but
+also the precision of this prediction given the dataset.  This
+precision can be used to construct a confidence interval around t.
+<p>
+
+We further extend the probabilistic model by considering a Bayesian
+approach to the estimation of this probabilistic model instead of the
+maximum likelihood estimator (which is known to over-fit the dataset).
+We choose a prior over the possible values of <b>w</b> which we will, for
+convenience reasons, select to be of a normal form (this is a conjugate prior as explained in <a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/prob.html">our review of basic probabilities</a>):
+</p><pre>p(<b>w</b> | α) = <font size="+3">∏</font><sub>m=0..M</sub>(α / 2π)<sup>1/2</sup> exp{-α/2 w<sub>m</sub><sup>2</sup>}
+             = N(<b>w</b> | <b>0</b>, 1/α<b>I</b>)
+</pre>
+This <i>prior distribution</i> expresses our degree of belief over the values that <b>w</b> can take.
+In this distribution, α plays the role of a hyper-parameter (similar to λ in the regularization model above).
+<p>
+
+The Bayesian approach consists of applying Bayes rule to the estimation task of the posterior distribution given the dataset:
+</p><pre>p(<b>w</b> | <b>t</b>, α, σ<sup>2</sup>) = likelihood . prior / normalizing-factor
+                = p(<b>t</b> | <b>w</b>, σ<sup>2</sup>)p(<b>w</b> | α) / p(<b>t</b> | α, σ<sup>2</sup>)
+
+</pre>
+
+Since we wisely chose a conjugate prior for our distribution over <b>w</b>, we can compute the posterior analytically:
+
+<pre>p(<b>w</b> | <b>x</b>, <b>t</b>, α, σ<sup>2</sup>) = N(μ, Σ)
+
+where Φ is the design matrix as above:
+
+μ = (Φ<sup>T</sup>Φ + σ<sup>2</sup>αI)<sup>-1</sup>Φ<sup>T</sup>t
+
+Σ = σ<sup>2</sup>(Φ<sup>T</sup>Φ + σ<sup>2</sup>αI)<sup>-1</sup>
+</pre>
+
+Given this approach, instead of learning a single point estimate of <b>w</b> as in the least-squares and penalized least-squares methods above,
+we have inferred a distribution over all possible values of <b>w</b> given the dataset. In other words, we have updated our belief about <b>w</b> from
+the prior (which does not include any information about the dataset) using new information derived from the observed dataset.
+<p>
+We can determine <b>w</b> by maximizing the posterior distribution over <b>w</b> given the dataset and the prior belief. This approach is called the
+<i>maximum posterior</i> (usually written MAP).  If we solve the MAP given our selection of the normal conjugate prior, we obtain that the posterior
+reaches its maximum on the minimum of the following function of w:
+</p><pre>1/2σ<sup>2</sup><font size="+3">Σ</font><sub>n=1..N</sub>{y(x<sub>n</sub>, <b>w</b>) - t<sub>n</sub>}<sup>2</sup> + α/2<b>w</b><sup>T</sup><b>w</b>
+</pre>
+
+We find thus that <b>w<sub>MAP</sub></b> is in fact the same as the solution of the penalized least-squares method for λ = α σ<sup>2</sup>.
+In other words - this probabilistic model explains that the PLS is in fact the optimal solution to the problem when our prior belief on the parameters w is
+a Normal distribution N(0, 1/αI) which encourages small values for the parameter w.
+<p>
+
+A fully Bayesian approach, however, does not look for point-estimators of parameters like <b>w</b>.  Instead, we are interested in the predictive distribution
+p(t | x, <b>x</b>, <b>t</b>). The Bayesian approach consists of marginalizing the predictive distribution over all possible values of the parameters:
+</p><pre>p(t | x, <b>x</b>, <b>t</b>) = <font size="+3">∫</font> p(t|x, <b>w</b>)p(<b>w</b> | <b>x</b>, <b>t</b>) d<b>w</b>
+</pre>
+
+(For simplicity, we have hidden the dependency on the hyper-parameters α and σ in this formula.)
+On this simple case, with a simple normal distribution and normal prior over <b>w</b>, we can solve this integral analytically, and we obtain:
+
+<pre>p(t | x, <b>x</b>, <b>t</b>) = N(t | m(x), s<sup>2</sup>(x))
+
+where the mean and variance are:
+
+m(x) = 1/σ<sup>2</sup> <b>Φ</b>(x)<sup>T</sup><b>S</b> <font size="+3">Σ</font><sub>n=1..N</sub><b>Φ</b>(x<sub>n</sub>)t<sub>n</sub>
+
+s<sup>2</sup>(x) = σ<sup>2</sup> + <b>Φ</b>(x)<sup>T</sup><b>S</b><b>Φ</b>(x)
+
+<b>S</b><sup>-1</sup> = α<b>I</b> + 1/σ<sup>2</sup> <font size="+3">Σ</font><sub>n=1..N</sub><b>Φ</b>(x<sub>n</sub>)<b>Φ</b>(x<sub>n</sub>)<sup>T</sup>
+
+<b>Φ</b>(x) = (Φ<sub>0</sub>(x) ... Φ<sub>M</sub>(x))<sup>T</sup> = (1 x x<sup>2</sup> ... x<sup>M</sup>)<sup>T</sup>
+</pre>
+
+Note that the mean and the variance of this predictive distribution depend on x.
+<p>
+
+<b>Your task</b>: write a function <b>bayesianEstimator(x, t, M, alpha, sigma2)</b> which given the dataset (x, t) of size N, and the parameters
+M, alpha, and sigma2 (the variance), returns a tuple of 2 functions (m(x) var(x)) which are the mean and variance of the predictive distribution
+inferred from the dataset, based on the parameters and the normal prior over <b>w</b>.  As you can see, in the Bayesian approach, we do not learn
+an optimal value for the parameter <b>w</b>, but instead, marginalize out this parameter and directly learn the predictive distribution.
+</p><p>
+Note that in Python, a function can return a function (a closure, like in Scheme or in JavaScript) using the following syntax:
+</p><pre>def adder(x): 
+    return lambda(y): x+y
+
+a2 = adder(2)
+
+print(a2(3))       // prints 5
+print(adder(4)(3)) // prints 7
+</pre>
+
+Draw the plot of the original function y = sin(2πx) over the range [0..1], the mean of the predictive distribution m(x) and the confidence interval
+(m(x) - var(x)<sup>1/2</sup>) and (m(x) + var(x)<sup>1/2</sup>) (that is, one standard deviation around each predicted point) for the values:
+<pre>alpha = 0.005
+sigma2 = 1/11.1
+M = 9
+</pre>
+over a synthetic dataset of size N=10 and N=100.
+
+The plot should look similar to the Figure below (from Bishop p.32).
+<p>
+<img src="./ex1_files/Figure1.17.png" width="438">
+</p><p>
+
+Interpret the height of the band around the most likely function in terms of the distribution of the xs in your synthetic dataset.
+Can you think of ways to make this height very small in one segment of the function and large in another?
+
+
+</p><hr>
+<hr>
+<a name="P3"></a>
+<h2>Part 3: Neural Models for Classification</h2>
+
+In this section, we adopt the PyTorch tutorial on 
+<a href="https://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html">Character RNN for classification</a>
+to a different dataset.
+
+<p>
+<a name="readtut"></a>
+</p><p></p><h3>3.1 Summarize the Tutorial</h3>
+
+Read the <a href="https://pytorch.org/tutorials/intermediate/char_rnn_classification_tutorial.html">PyTorch tutorial</a>
+and summarize it (in about 200 words): what is the task it addresses, what is the method, how is the data encoded, which loss function is used, 
+which evaluation method is used, what are the results.  In your summary, relate to the terminology we used in 
+<a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/nlp04.html">Lecture 4</a>.
+<p>
+
+You should read <a href="https://pytorch.org/tutorials/beginner/blitz/tensor_tutorial.html">PyTorch Tensor Tutorial</a> as a 
+preparation to be sure you follow the code in this tutorial.
+
+</p><p>
+<a name="newdata"></a>
+</p><p></p><h3>3.2 Explore City Names Dataset</h3>
+
+We will use a dataset on city names in different countries.
+
+Download the data from <a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/cities_val.zip">cities_val.zip</a> (validation)
+and <a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/cities_train.zip">cities_train.zip</a> (training).
+Install these files under "../data/cities/val" and "../data/cities/train" (do not submit these files as part of your submission).
+
+Use the following code to read the data:
+<pre>import codecs
+import math
+import random
+import string
+import time
+import numpy as np
+import torch
+from sklearn.metrics import accuracy_score
+
+'''
+Don't change these constants for the classification task.
+You may use different copies for the sentence generation model.
+'''
+languages = ["af", "cn", "de", "fi", "fr", "in", "ir", "pk", "za"]
+all_letters = string.ascii_letters + " .,;'"
+
+
+import unicodedata
+
+# Turn a Unicode string to plain ASCII, thanks to https://stackoverflow.com/a/518232/2809427
+def unicodeToAscii(s):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', s)
+        if unicodedata.category(c) != 'Mn'
+        and c in all_letters
+    )
+
+# print(unicodeToAscii('Ślusàrski'))
+
+# Build the category_lines dictionary, a list of names per language
+category_lines = {}
+all_categories = []
+
+# Read a file and split into lines
+def readLines(filename):
+    lines = codecs.open(filename, "r",encoding='utf-8', errors='ignore').read().strip().split('\n')
+    return [unicodeToAscii(line) for line in lines]
+</pre>
+
+Explore the train dataset by computing basic descriptive statistics:
+number of categories, tokens per category, number of characters, distinct characters, average number of characters per token.
+<p>
+Explain why the unicodeToAscii is a good idea for this task.
+
+
+</p><p>
+<a name="citiesmodel"></a>
+</p><p></p><h3>3.3 Train a Model and Evaluate It</h3>
+
+Adopt the code of the PyTorch tutorial to run on this new dataset.
+
+Report on performance in a similar manner.  Explain the main confusion cases observed in the confusion matrix.
+
+<p>
+<a name="bettercitiesmodel"></a>
+</p><p></p><h3>3.4 Improve the RNN Model (Optional)</h3>
+
+Explore methods to improve performance.
+
+Some directions are:
+<ol>
+<li>Compare the different types of RNNs - RNN (the one in the tutorial), 
+<a href="https://pytorch.org/docs/stable/nn.html#lstm">LSTM</a>, 
+<a href="https://pytorch.org/docs/stable/nn.html#gru">GRU units</a>.
+</li>
+<li>Try dropout if your model is overfitting (how do you detect that the model overfits?). dropout is a method for regularization in neural networks.
+See <a href="https://pytorch.org/docs/stable/nn.html#rnn">dropout parameter for pytorch RNN</a>.
+</li><li>Use a different initalization for the weights, for example, small random values instead of 0s
+</li></ol>
+
+
+<p></p>
+<hr>
+        <i>Last modified 08 Nov 2020</i>
+
+</body><grammarly-desktop-integration data-grammarly-shadow-root="true"><template shadowrootmode="open"><style>
+  div.grammarly-desktop-integration {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select:none;
+    user-select:none;
+  }
+
+  div.grammarly-desktop-integration:before {
+    content: attr(data-content);
+  }
+</style><div aria-label="grammarly-integration" role="group" tabindex="-1" class="grammarly-desktop-integration" data-content="{&quot;mode&quot;:&quot;full&quot;,&quot;isActive&quot;:true,&quot;isUserDisabled&quot;:false}"></div></template></grammarly-desktop-integration></html>
