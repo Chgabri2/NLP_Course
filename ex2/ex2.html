@@ -1,0 +1,685 @@
+
+<!-- saved from url=(0048)https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<link rel="stylesheet" href="./ex2_files/nlp.css" type="text/css" media="all">
+<title>NLP21 Assignment 2: Sequence Classification, Named Entity Recognition, Document Classification, HMM, Word Embeddings</title>
+</head>
+
+<body data-new-gr-c-s-check-loaded="14.1112.0" data-gr-ext-installed="">
+
+<h1>Assignment 2</h1>
+
+<h2>Due: Mon 04 Jan 2021 Midnight</h2>
+<a href="http://www.cs.bgu.ac.il/~elhadad/nlp21.html">Natural Language Processing - Fall 2021 Michael Elhadad</a>
+<p>
+This assignment covers the topic of document classification, sequence classification, named entity recognition and word embeddings.
+The objective is:
+</p><ul>
+<li>Apply feature-based supervised machine learning methods for document and token classification.</li>
+<li>Investigate algorithms for sequence classification: HMMs and CRFs.</li>
+<li>Learn the specific tasks of word classification, named entity recognition and document classification.
+</li><li>Use pre-trained word embeddings and measure whether they help for the task of NER.
+</li></ul>
+
+<p>
+Submit your solution by email in the form of an iPython ipynb file.
+</p><p>
+Do <b>not</b> attach the data in your submission.  Your notebook should refer to the data folder as "../data".
+
+</p><p>
+</p><hr>
+<h2>Content</h2>
+<ul>
+    <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#questions">Q1. Questions Classification</a>
+      <ul>
+      <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q1.1">Q1.1. Describe the dataset qualitatively</a></li>
+      <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q1.2">Q1.2. Dataset Reader</a></li>
+      <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q1.3">Q1.3. Dataset Exploration</a></li>
+      <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q1.4">Q1.4. Classifier Interface, Evaluation Metrics, Confusion Matrix</a></li>
+      <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q1.5">Q1.5 Baseline Classifier</a></li>
+      <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q1.6">Q1.6 Features-based Classifier</a></li>
+      <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q1.7">Q1.7. Optional</a></li>
+      </ul>
+    </li>
+    <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q2">Q2. Document Classification</a>
+      <ul>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q2.1">Q2.1 Reuters Dataset</a>
+          <ul>
+          <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q2.1.1">Q2.1.1 Descriptive Statistics</a></li>
+          <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q2.1.2">Q2.1.2 Partial-fit classifiers</a></li>
+          <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q2.1.3">Q2.1.3 Hashing Vectorizer</a></li>
+          </ul>
+        </li>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q2.2">Q2.2. BBC News Dataset</a>
+          <ul>
+            <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q2.2.1">Q2.2.1 Descriptive Statistics</a></li>
+            <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q2.2.2">Q2.2.2 Feature Extraction</a></li>
+            <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q2.2.3">Q2.2.3 Model Training and Evaluation</a></li>
+            </ul>
+        </li>
+      </ul>
+    </li>
+    <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q3">Q3. Named Entity Recognition</a>
+      <ul>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q3.1">Q3.1 Features</a>
+          <ul>
+            <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q3.1.1">Q3.1.1 Feature Extraction</a></li>
+            <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q3.1.2">Q3.1.2 Model Training</a></li>
+            <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q3.1.3">Q3.1.3 Greedy Tagging vs. Sequence Tagging</a></li>
+          </ul>
+        </li>
+        <li><a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/hw2.html#q3.2">Q3.2 Using Word Embeddings</a></li>
+      </ul>
+      
+    </li>
+</ul>
+
+
+<hr>
+<a name="questions"></a>
+<h2>Q1. Questions Classification</h2>
+
+Consider the dataset on Question Classification available <a href="https://cogcomp.seas.upenn.edu/Data/QA/QC/">here</a>.
+
+<a name="q1.1"></a>
+<h3>Q1.1. Describe the dataset qualitatively</h3>
+
+Read the article introducing this dataset: 
+<a href="http://www.aclweb.org/anthology/C02-1150">in Li, Dan Roth, Learning Question Classifiers. COLING'02</a>.
+<p>
+Write a half to one-page summary of the paper, focusing on the dataset description (more than on the description of the classifier introduced in the paper).
+Describe the exact task, the labels used, and provide the motivation for this task.
+Provide examples for the 6 main categories.
+
+<a name="q1.2"></a>
+</p><h3>Q1.2. Dataset Reader</h3>
+
+Implement a reader to parse the dataset into a data structure that will be easily used for scikit-learn processing.
+
+Adapt the code we used in HW1:
+<pre>import codecs
+import math
+import random
+import string
+import time
+import numpy as np
+from sklearn.metrics import accuracy_score
+
+'''
+Define different constants for the task of question classification 
+based on the definition of the task.
+In the question classification case, there are 2 labels per question: coarse and fine.
+'''
+coarse_categories = ["ABBREVIATION", "ENTITY", "DESCRIPTION", "HUMAN", "LOCATION", "NUMERIC VALUE"]
+fine_categories = {}
+fine_categories["ABBREVIATION"] = ["abb", "exp"]
+# more here...
+  
+# Build the category_lines dictionary, a list of names per language
+coarse_category_lines = {}
+all_categories = []
+
+# @Todo: Define the way the lines should be parsed
+def parseLine(line):
+    return line
+
+# @Todo: Read a file and split into lines - create the appropriate data structure
+def readLines(filename):
+    lines = codecs.open(filename, "r",encoding='utf-8', errors='ignore').read().strip().split('\n')
+    return [parseLine(line) for line in lines]
+</pre>
+
+
+
+<a name="q1.3"></a>
+<h3>Q1.3. Dataset Exploration</h3>
+
+The labels used to classify the questions are organized in two levels:
+<ul>
+<li>6 coarse classes (ABBREVIATION, ENTITY, DESCRIPTION, HUMAN, LOCATION and NUMERIC VALUE)
+</li><li>50 fine classes (see Table 1 of the article above)
+</li></ul>
+
+The definition of the question labels is provided <a href="https://cogcomp.seas.upenn.edu/Data/QA/QC/definition.html">here</a>.
+<p>
+
+Provide a quantitative description of the dataset:
+</p><ol>
+<li>Distribution of the question labels (number / percentage) - separately for coarse and fine labels.
+</li><li>Distribution of the number of tokens per question - overall and per label.
+</li><li>Vocabulary size and number of tokens overall and per label.
+</li><li>Top 20 more frequent words overall and per label
+</li><li>Number of words occurring 1,2,3,4 and 5 times
+</li></ol>
+
+For this type of exploration, the <a href="https://pandas.pydata.org/">pandas</a> library is extremely convenient.
+In particular, explore the function dataframe.describe().  You can use other code if you prefer.
+
+
+<a name="q1.4"></a>
+<h3>Q1.4. Classifier Interface, Evaluation Metrics, Confusion Matrix</h3>
+
+Define the Python interface (functions or class according to your preference) of a question classifier so that the 
+function accuracy_score and classification_report from the sklearn.metrics module can be used.
+
+Define a function evaluate_classifier that takes a trained classifier and reports classification results for 
+coarse and fine categories.
+
+Define a function confusion_matrix(model) which prints a confusion matrix for the coarse level categories in the same
+way as in HW1 Question 3.
+
+<a name="q1.5"></a>
+<h3>Q1.5 Baseline Classifier</h3>
+
+Implement a baseline classifier for the 6 coarse labels using the heuristics described in the paper in Section 2.1
+(of the form – If a query starts with Who or Whom: type Human).
+<p>
+
+Report on the accuracy, precision, recall, and F1 measure for all the coarse labels, and provide
+the confusion matrix for the 6 coarse labels.
+</p><p>
+
+Analyze the errors by listing types of errors (false positives and false negatives for each of the 6 labels).
+
+
+<a name="q1.6"></a>
+</p><h3>Q1.6 Features-based Classifier</h3>
+
+Implement a feature-based classifier for the 6 coarse labels using the types of features described in the paper Section 3.2: words, POS tags, NER tags.  
+<p>
+
+Use the <a href="https://spacy.io/usage/spacy-101">spacy</a> library to perform pre-processing of the questions - including POS tagging and Named Entity Recognition and Noun Chunks detection.  Spacy comes with excellent pre-trained models for English and other languages.
+Installing Spacy requires the following steps (see <a href="https://spacy.io/usage/spacy-101#annotations-ner">spacy documentation</a>):
+
+</p><pre>// This installs the Spacy library (13MB)
+% pip install spacy
+// This downloads pre-trained models for POS tagging / NER / Noun chunks in English (34MB)
+% python -m spacy download en_core_web_sm
+% python
+&gt; import spacy
+&gt; nlp = spacy.load('en_core_web_sm')
+&gt; doc = nlp('Apple is looking at buying U.K. startup for $1 billion')
+&gt; doc.ents
+(Apple, U.K., $1 billion)
+&gt; doc.ents[0].label_
+'ORG'
+</pre>
+
+Invoking the 'nlp()' function of spacy performs a set of analyses on the text, including: sentence separation, tokenization, lemmatization, parts of speech tagging, 
+Noun-phrase chunking, named entity recognition and syntactic parsing.  Information about these analyses is retrieved using the spacy document properties.
+
+As indicated in the paper, we want to extract the following information as features for the task of question classification:
+<ul>
+  <li>Tokens</li>
+  <li>Lemmas</li>
+  <li>Parts of speech tags</li>
+  <li>Noun phrase chunks</li>
+  <li>Named entities</li>
+</ul>
+
+Here are starting points to learn how to extract this information from the nlp analysis:
+
+<pre>  % python
+  &gt; import spacy
+  &gt; nlp = spacy.load('en_core_web_sm')
+  &gt; doc = nlp('Apple is looking at buying U.K. startup for $1 billion')
+  
+  # Token level features retrieved by Spacy: token, lemma, POS
+  &gt; for x in doc:   # Each x is a Token
+          print(f"Token: {x} - Lemma: {x.lemma_} - POS: {x.pos_}")
+  Token: Apple - Lemma: Apple - POS: PROPN
+  Token: is - Lemma: be - POS: AUX
+  Token: looking - Lemma: look - POS: VERB
+  Token: at - Lemma: at - POS: ADP
+  Token: buying - Lemma: buy - POS: VERB
+  Token: U.K. - Lemma: U.K. - POS: PROPN
+  Token: startup - Lemma: startup - POS: NOUN
+  Token: for - Lemma: for - POS: ADP
+  Token: $ - Lemma: $ - POS: SYM
+  Token: 1 - Lemma: 1 - POS: NUM
+  Token: billion - Lemma: billion - POS: NUM
+
+  # Span level features retrieved by Spacy: named entities, start (0-based index), end (index just after the span), category
+  &gt; doc.ents
+    (Apple, U.K., $1 billion)
+  &gt; for e in doc.ents: print(f"{e} - {e.start} - {e.end} - {e.label_}")
+  Apple - 0 - 1 - ORG
+  U.K. - 5 - 6 - GPE
+  $1 billion - 8 - 11 - MONEY
+
+  # Span level features retrieved by Spacy: noun chunks
+  &gt; list(doc.noun_chunks)
+  [Apple, U.K. startup]
+  &gt; for c in doc.noun_chunks: print(f"{c.start} - {c.end} - {c.root}")
+  0 - 1 - Apple
+  5 - 7 - startup
+</pre>
+  
+
+The paper does not explicitly indicate how to encode the features it lists and is not precise about the features named `related words` (words which are usually associated with a specific type of questions).  For example:
+<ol>
+<li>Word features can be encoded in different ways: noise words filtered or not, with or without lemmatization, with or without case normalization (all lower-case).  
+</li><li>POS features can be encoded in different ways: as a bag of POS-tags, or associated with the word in a bag-of-tagged words such as 'Apple/PROPN' 
+</li><li>Chunks can be encoded as a bag of chunk-roots 
+</li><li>Examples of "related words" per category are provided for a few categories: <a href="https://cogcomp.seas.upenn.edu/Data/QA/QC/lists/prof">profession</a>,
+    <a href="https://cogcomp.seas.upenn.edu/Data/QA/QC/lists/mount">mountains</a> and <a href="https://cogcomp.seas.upenn.edu/Data/QA/QC/lists/food">food</a>.
+  You should learn the related words list from the training dataset by detecting words which have a high chi-square
+value with each category.  Read in <a href="http://scikit-learn.org/stable/modules/generated/sklearn.feature_selection.chi2.html">sklearn.feature_selection.chi2</a> for a discussion of how such words can be efficiently computed using scikit-learn.
+</li>
+</ol>
+
+<a name="q1.6.1"></a>
+<h4>Q1.6.1 Feature Extraction</h4>
+
+Discuss a priori what are good ways to encode these features (lemma, POS, NER, chunk, related words) - provide examples that explain your intuition.
+<p>
+Implement a feature extraction function that turns a question into a feature vector appropriate for the scikit-learn classifiers.
+Adopt the example shown in the scikit-learn documentation: 
+<a href="https://scikit-learn.org/stable/modules/feature_extraction.html#loading-features-from-dicts">loading features from dicts</a>.
+
+<a name="q1.6.2"></a>
+</p><h4>Q1.6.2 Train Models</h4>
+
+Train scikit-learn based classifiers for:
+<ol>
+<li>Coarse labels
+</li><li>All labels as a flat classifier
+</li><li>A hierarchical classifier which predicts the fine-grained labels given the coarse label as proposed in the paper.  Implement this as a two-step procedure - run the coarse-label classifier, then a second level classifier which takes the prediction of the first classifier as input (one finer classifier per coarse category).
+</li></ol>
+
+For each of the three classifiers, report:
+<ol>
+<li>Accuracy, Precision, Recall, F-measure per label and confusion matrix.
+</li><li>Provide examples of prediction errors (positive and negative).
+</li><li>Discuss the most ambiguous label pairs (identified in the confusion matrix) and discuss whether the features you have used provide sufficient information to disambiguate the cases.
+</li></ol>
+
+You should experiment with different classifiers from those illustrated in the
+<a href="https://scikit-learn.org/stable/auto_examples/text/plot_document_classification_20newsgroups.html">
+Classification of text documents using sparse features</a> example.
+<p>
+
+<a name="q1.7"></a>
+</p><h3>Q1.7 Optional</h3>
+
+1.7.1 Analyze which of the features are most helpful for this task among lemma, POS, NER, Chunks and Related Words.
+(This analysis is called <a href="https://en.wikipedia.org/wiki/Ablation_(artificial_intelligence)#:~:text=In%20artificial%20intelligence%20(AI)%2C,component%20to%20the%20overall%20system.">ablation analysis</a>).
+<p>
+
+1.7.2 The dataset is quite small (5,500 questions in the training dataset for 50 labels).
+How would you determine whether your model overfits on this data? 
+
+
+</p><hr>
+<a name="q2"></a>
+<h2>Q2. Document Classification</h2>
+
+<a name="q2.1"></a>
+<h3>Q2.1. Reuters Dataset</h3>
+
+Execute the notebook tutorial of Scikit-Learn on text classification: 
+<a href="http://scikit-learn.org/dev/auto_examples/applications/plot_out_of_core_classification.html#example-applications-plot-out-of-core-classification-py">out of core classification</a>.
+<p>
+
+
+<a name="q2.1.1"></a>
+</p><h4>Q2.1.1 Descriptive Statistics</h4> 
+
+Explore how many documents are in the dataset, how many categories, how many documents per categories, provide mean and standard deviation, min and max. (use the pandas library to explore the dataset, use the dataframe.describe() method.)
+
+Explore how many characters and words are present in the documents of the dataset.
+
+<a name="q2.1.2"></a>
+<h4>Q2.1.2 Partial-fit classifiers</h4> 
+
+Explain informally what are the classifiers that support the "partial-fit" method discussed in the code.
+
+<a name="q2.1.3"></a>
+<h4>Q2.1.3 Hashing Vectorizer</h4> 
+
+Explain what is the hashing vectorizer used in this tutorial.  Why is it important to use this vectorizer to achieve "streaming classification"?
+
+<a name="q2.2"></a>
+<h3>Q2.2. BBC News Dataset</h3>
+
+The <a href="https://www.kaggle.com/c/learn-ai-bbc/data">Kaggle BBC News</a> dataset is a document dataset to test document classification.
+It contains 1,500 training documents (news stories from the BBC News) and 700 test documents. Documents are classified into 5 categories: sports, tech, business, 
+entertainment, politics.  Text is encoded in the following format: all lower case, quotes are removed and separated, non period punctuations are removed.
+For example:
+<pre>lifestyle  governs mobile choice  faster  better or funkier hardware alone is not going to help phone firms sell more handsets
+research suggests.  instead  phone firms keen to get more out of their customers should not just be pushing the technology 
+for its own sake. consumers are far more interested in how handsets fit in with their lifestyle than they are in screen size  
+onboard memory or the chip inside  shows an in-depth study by handset maker ericsson.  
+historically in the industry there has been too much focus on using technology   
+said dr michael bjorn  senior advisor on mobile media at ericsson s consumer and enterprise lab.
+</pre>
+
+Download the data <a href="https://www.cs.bgu.ac.il/~elhadad/nlp21/bbcnews.zip">bbcnews.zip</a>.
+
+<a name="q2.2.1"></a>
+<h4>Q2.2.1 Dataset Exploration</h4>
+
+Explore how many documents are in the dataset, how many categories, how many documents per categories, provide mean and standard deviation, min and max. 
+
+<a name="q2.2.2"></a>
+<h4>Q2.2.2 Features Extraction</h4>
+
+Select appropriate features for document classification and implement a scikit-learn vectorizer for this dataset.
+
+<a name="q2.2.3"></a>
+<h4>Q2.2.3 Model Training and Evaluation</h4>
+
+Implement a classifier for this dataset.  
+<p>
+Report performance, confusion matrix and analyze errors.
+</p><p>
+
+In order to run the test data, you will need to register to Kaggle and use their submission system.
+To avoid the complexity of using the Kaggle submission system, split the train data into 80% training / 20% test.  
+</p><p>
+
+You can see examples solving this task with good usage of scikit-learn APIs in <a href="https://www.kaggle.com/c/learn-ai-bbc/leaderboard">the Kaggle leaderboard</a>.
+In particular, <a href="https://www.kaggle.com/aryankaul31/aryan-bbc-news-classification">aryan-bbc-news-classification</a> demonstrates data exploration for 
+classification using pandas, tf-idf features, TSNE visualization for feature vectors, and chi-square correlation between features and labels. 
+
+
+
+</p><hr>
+<a name="q3"></a>
+<h2>Q3. Named Entity Recognition</h2>
+
+<h3>Named Entity Recognition</h3>
+
+The task of Named Entity Recognition (NER) involves the recognition of names of persons, locations, organizations, dates in free text.
+As we have seen above, Spacy includes a very good NER model as part of its library.  In this question, we will study how to implement 
+such a model.
+
+The following sentence is tagged with sub-sequences indicating PER (for persons), LOC (for location) and ORG (for organization):
+<pre>Wolff, currently a journalist in Argentina, played with Del Bosque in the final years of the seventies in Real Madrid.
+
+[PER Wolff ] , currently a journalist in [LOC Argentina ] , played with [PER Del Bosque ] in the final years of the seventies in 
+[ORG Real Madrid ] .
+</pre>
+
+NER involves 2 sub-tasks: identifying the boundaries of such expressions (the open and close brackets) and labelling the expressions
+(with tags such as PER, LOC or ORG).  This sequence labelling task is reduced into a classification task, using the BIO encoding of the data:
+<pre>        Wolff B-PER
+            , O
+    currently O
+            a O
+   journalist O
+           in O
+    Argentina B-LOC
+            , O
+       played O
+         with O
+          Del B-PER
+       Bosque I-PER
+           in O
+          the O
+        final O
+        years O
+           of O
+          the O
+    seventies O
+           in O
+         Real B-ORG
+       Madrid I-ORG
+            . O
+</pre>
+
+
+<h3>Dataset</h3>
+
+The dataset we will use for this question is derived from the CoNLL 2002 shared task - which is about NER in Spanish and Dutch.
+The dataset is included in the NLTK distribution.  Explanations on the dataset are provided in the 
+<a href="https://www.clips.uantwerpen.be/conll2002/ner/">CoNLL 2002</a> page.
+<p>
+
+To access the data in Python, do:
+</p><pre>from nltk.corpus import conll2002
+
+etr = conll2002.chunked_sents('esp.train') # In Spanish
+eta = conll2002.chunked_sents('esp.testa') # In Spanish
+etb = conll2002.chunked_sents('esp.testb') # In Spanish
+
+dtr = conll2002.chunked_sents('ned.train') # In Dutch
+dta = conll2002.chunked_sents('ned.testa') # In Dutch
+dtb = conll2002.chunked_sents('ned.testb') # In Dutch
+</pre>
+
+The data consists of three files per language (Spanish and Dutch): one training file and two test files testa and testb. 
+The first test file is to be used in the development phase for finding good parameters for the learning system. 
+The second test file will be used for the final evaluation.
+<p>
+
+<a name="q3.1"></a>
+</p><h3>Q3.1 Features</h3>
+
+Your task consists of:
+<ol>
+<li>Choosing good features for encoding the problem.
+</li><li>Encode your training dataset.
+</li><li>Run a classifier over the training dataset.
+</li><li>Train and test the model.
+</li><li>Perform error analysis and fine tune model parameters on the testa part of the datasets.
+</li><li>Perform evaluation over the testb part of the dataset, reporting on accuracy, per label precision, per label recall and per label F-measure, and confusion matrix.
+</li></ol>
+<p>
+
+Here is a list of features that have been found appropriate for NER in previous work:
+</p><ol>
+<li>The word form (the string as it appears in the sentence)
+</li><li>The POS of the word (which is provided in the dataset)
+</li><li>ORT - a feature that captures the orthographic (letter) structure of the word.  It can have any of the following values: 
+    number, contains-digit, contains-hyphen, capitalized, all-capitals, URL, punctuation, regular. 
+</li><li>prefix1: first letter of the word
+</li><li>prefix2: first two letters of the word
+</li><li>prefix3: first three letters of the word
+</li><li>suffix1: last letter of the word
+</li><li>suffix2: last two letters of the word
+</li><li>suffix3: last three letters of the word
+</li></ol>
+
+<p>
+
+For example, given the following toy training data, the encoding of the features would be:
+</p><pre>        Wolff NP  B-PER
+            , ,   O
+    currently RB  O
+            a AT  O
+   journalist NN  O
+           in IN  O
+    Argentina NP  B-LOC
+            , ,   O
+       played VBD O
+         with IN  O
+          Del NP  B-PER
+       Bosque NP  I-PER
+           in IN  O
+          the AT  O
+        final JJ  O
+        years NNS O
+           of IN  O
+          the AT  O
+    seventies NNS O
+           in IN  O
+         Real NP  B-ORG
+       Madrid NP  I-ORG
+            . .   O
+
+<u>Classes</u>
+1 B-PER
+2 I-PER
+3 B-LOC
+4 I-LOC
+5 B-ORG
+6 I-ORG
+7 O
+
+<u>Feature WORD-FORM:</u>
+1 Wolff
+2 ,
+3 currently
+4 a
+5 journalist
+6 in
+7 Argentina
+8 played
+9 with
+10 Del
+11 Bosque
+12 the
+13 final
+14 years
+15 of
+16 seventies
+17 Real
+18 Madrid
+19 .
+
+<u>Feature POS</u>
+20 NP
+21 ,
+22 RB
+23 AT
+24 NN
+25 VBD
+26 JJ
+27 NNS
+28 .
+
+<u>Feature ORT</u>
+29 number
+30 contains-digit
+31 contains-hyphen
+32 capitalized
+33 all-capitals
+34 URL
+35 punctuation
+36 regular
+
+<u>Feature Prefix1</u>
+37 W
+38 ,
+39 c
+40 a
+41 j
+42 i
+43 A
+44 p
+45 w
+46 D
+47 B
+48 t
+49 f
+50 y
+51 o
+52 s
+53 .
+</pre>
+
+Given this encoding, we can compute the vector representing the first word "Wolff NP B-PER" as:
+<pre># Class: B-PER=1
+# Word-form: Wolff=1
+# POS: NP=20
+# ORT: Capitalized=32
+# prefix1: W=37
+1 1:1 20:1 32:1 37:1
+</pre>
+
+When you encode the test dataset, some of the word-forms will be unknown (not seen in the training dataset).
+You should, therefore, plan for a special value for each feature of type "unknown" when this is expected.
+<p>
+
+Instead of writing the code as explained above, use the Scikit-learn vectorizer and pipeline library.
+General information on feature extraction for text data in Scikit-Learn is 
+in <a href="https://scikit-learn.org/stable/modules/feature_extraction.html#text-feature-extraction">the Scikit-Learn documentation</a>.
+Refer to the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.DictVectorizer.html">DictVectorizer</a> for this specific task.
+<a href="https://scikit-learn.org/stable/auto_examples/text/plot_hashing_vs_dict_vectorizer.html">Hashing vs. DictVectorizer</a>
+also provides useful background.
+</p><p>
+
+<a name="q3.1.1"></a>
+</p><h4>Q3.1.1 Feature Extraction</h4>
+
+Start from the following example notebook
+<a href="http://nbviewer.ipython.org/github/tpeng/python-crfsuite/blob/master/examples/CoNLL%202002.ipynb">CoNLL 2002 Classification with CRF</a>.
+You do not need to install Python-CRFSuite - just take this notebook as a starting point to explore the dataset and ways to encode features.
+(This notebook also gives you an indication of the level of result you can expect to obtain.)
+<p>
+
+<a name="q3.1.2"></a>
+</p><h4>Q3.1.2 Model Training</h4>
+
+Train the model using a logistic regression classifier and experiment with better features - 
+looking at the tags of the previous word, the previous word and the following word (add padding words in the vectorizer).
+<p>
+
+<a name="q3.1.3"></a>
+</p><h4>Q3.1.3 Greedy Tagging vs. Sequence Tagging</h4>
+
+We implemented above a version of NER which is based on <i>greedy tagging</i>: that is, without optimizing the sequence of tags 
+as we would obtain by training an HMM or CRF model.  
+In particular, we did not check that the BIO tags produced by the tagger is a legal sequence.
+Write code to identify sequences of BIO tags which are illegal and report on the frequency of this problem for each type
+of illegal tags transition (O-IX, IX-IY, BX-IY).  Comment on your observations.
+<p>
+
+
+
+<a name="q3.2"></a>
+</p><h3>Q3.2 Using Word Embeddings</h3>
+
+One way to improve a greedy tagger for NER is to use Word Embeddings as features.
+A convenient package to manipulate Word2Vec word embeddings is provided in the <a href="https://radimrehurek.com/gensim/">gensim</a> package by Radim Rehurek.
+To install it, use:
+<pre># conda install gensim
+</pre>
+
+You must also download a pre-trained Word2Vec or fastText word embedding model.
+The models must naturally be in Spanish or Dutch. (Only test word embeddings for one language.)
+You can find pre-trained word embedding models in different formats:
+<ol>
+<li><a href="https://github.com/facebookresearch/fastText/blob/master/docs/pretrained-vectors.md">fastText pretrained models</a> (includes models for 294 languages)
+</li><li><a href="https://github.com/uchile-nlp/spanish-word-embeddings">Spanish Word2vec models</a> 
+</li></ol>
+
+Specific information on manipulating word vectors with Gensim is provided in Gensim with the <a href="https://radimrehurek.com/gensim/models/keyedvectors.html">KeyedVector</a>.
+Practical examples are available for Spanish in this <a href="https://github.com/uchile-nlp/spanish-word-embeddings/blob/master/examples/Ejemplo_WordVectors.ipynb">notebook</a>.
+(Pay attention that word embeddings large are pretty big files - about 3GB when uncompressed.)
+
+Your task:
+<ol>
+<li>Add word embeddings as dense vectors to the features of your NER classifier for each word feature (current word, previous word, next word) - either in Spanish or in Dutch.
+</li><li>Retrain the model and report on performance.  Comment.
+</li></ol>
+
+<hr>
+<br>
+<hr>
+        <i>Last modified 15 Dec, 2020</i>
+
+
+</body><grammarly-desktop-integration data-grammarly-shadow-root="true"><template shadowrootmode="open"><style>
+  div.grammarly-desktop-integration {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select:none;
+    user-select:none;
+  }
+
+  div.grammarly-desktop-integration:before {
+    content: attr(data-content);
+  }
+</style><div aria-label="grammarly-integration" role="group" tabindex="-1" class="grammarly-desktop-integration" data-content="{&quot;mode&quot;:&quot;full&quot;,&quot;isActive&quot;:true,&quot;isUserDisabled&quot;:false}"></div></template></grammarly-desktop-integration></html>
